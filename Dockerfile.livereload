@@ -1,0 +1,7 @@
+FROM node:18-alpine
+
+RUN npm install -g livereload
+
+WORKDIR /app
+
+CMD ["livereload", "-p", "35729", "-w", "300", "-e", "html,css,js", "/app/src"]

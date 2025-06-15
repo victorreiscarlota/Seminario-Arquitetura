@@ -7,14 +7,19 @@
     html, body {
       margin: 0;
       padding: 0;
-      background: #111;
       height: 100%;
       overflow: hidden;
       display: flex;
       justify-content: center;
       align-items: center;
+      transition: background-color 0.3s ease;
     }
-
+    body {
+      background: #111;
+    }
+    body.light-mode {
+      background: #f8fafc;
+    }
     h1 {
       font-size: 8rem;
       font-family: Helvetica, sans-serif;
@@ -29,25 +34,149 @@
       -webkit-mask-image: radial-gradient(circle at center, rgba(255,255,255,1) 20%, rgba(255,255,255,0) 60%);
       transition: background-position 0.2s ease;
     }
+    .theme-toggle {
+      position: fixed;
+      top: 30px;
+      right: 30px;
+      width: 60px;
+      height: 30px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 30px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      padding: 2px;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(10px);
+    }
+    .theme-toggle:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+    .theme-toggle::before {
+      content: '';
+      width: 22px;
+      height: 22px;
+      background: white;
+      border-radius: 50%;
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+    body.light-mode .theme-toggle {
+      background: rgba(0, 0, 0, 0.1);
+      border-color: rgba(0, 0, 0, 0.2);
+    }
+    body.light-mode .theme-toggle:hover {
+      background: rgba(0, 0, 0, 0.15);
+      border-color: rgba(0, 0, 0, 0.3);
+    }
+    body.light-mode .theme-toggle::before {
+      background: #333;
+      transform: translateX(28px);
+    }
+    .theme-toggle .icon {
+      position: absolute;
+      font-size: 12px;
+      transition: opacity 0.3s ease;
+    }
+    .theme-toggle .sun {
+      right: 8px;
+      opacity: 0;
+    }
+    .theme-toggle .moon {
+      left: 8px;
+      opacity: 1;
+    }
+    body.light-mode .theme-toggle .sun {
+      opacity: 1;
+    }
+    body.light-mode .theme-toggle .moon {
+      opacity: 0;
+    }
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 4rem;
+      }
+      .theme-toggle {
+        top: 20px;
+        right: 20px;
+        width: 50px;
+        height: 25px;
+      }
+      .theme-toggle::before {
+        width: 19px;
+        height: 19px;
+      }
+      body.light-mode .theme-toggle::before {
+        transform: translateX(23px);
+      }
+    }
   </style>
 </head>
 <body>
   <h1 id="hover-text">Hello, World 🚀!</h1>
 
+  <button class="theme-toggle" id="theme-toggle" aria-label="Alternar tema">
+    <span class="icon moon">🌙</span>
+    <span class="icon sun">☀️</span>
+  </button>
+
   <script>
+    if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+      const socket = new WebSocket('ws://localhost:35729/livereload');
+      socket.onopen = () => console.log('LiveReload connected');
+      socket.onerror = (e) => console.error('LiveReload error:', e);
+      socket.onclose = () => console.warn('LiveReload disconnected');
+      socket.onmessage = (e) => {
+        console.log('Reloading page...');
+        location.reload();
+      };
+    }
+
     const text = document.getElementById('hover-text');
+    const themeToggle = document.getElementById('theme-toggle');
+    const body = document.body;
 
     document.addEventListener('mousemove', (e) => {
+      if (!text) return;
       const { clientX, clientY } = e;
       const { left, top, width, height } = text.getBoundingClientRect();
-
       const x = ((clientX - left) / width) * 100;
       const y = ((clientY - top) / height) * 100;
-
       text.style.backgroundPosition = `${x}% ${y}%`;
       text.style.maskImage = `radial-gradient(circle at ${x}% ${y}%, rgba(255,255,255,1) 20%, rgba(255,255,255,0) 60%)`;
       text.style.webkitMaskImage = `radial-gradient(circle at ${x}% ${y}%, rgba(255,255,255,1) 20%, rgba(255,255,255,0) 60%)`;
     });
+
+    themeToggle.addEventListener('click', () => {
+      body.classList.toggle('light-mode');
+      try {
+        const isLightMode = body.classList.contains('light-mode');
+        localStorage.setItem('theme', isLightMode ? 'light' : 'dark');
+      } catch (e) {
+        console.error('Error accessing localStorage:', e);
+      }
+    });
+
+    try {
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme === 'light') {
+        body.classList.add('light-mode');
+      }
+    } catch (e) {
+      console.error('Error accessing localStorage:', e);
+    }
+
+    if (!localStorage.getItem('theme')) {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (!prefersDark) {
+        body.classList.add('light-mode');
+      }
+    }
   </script>
 </body>
 </html>
